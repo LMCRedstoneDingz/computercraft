@@ -1,4 +1,5 @@
 {
+  __COMMENT = "https://github.com/pahimar/Equivalent-Exchange-3/wiki/EMC-Value  :  http://www.minecraft-servers-list.org/id-list/",
   minecraft = {
     beef = 64,
     dirt = {
