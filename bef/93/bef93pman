@@ -1,0 +1,32 @@
+--[[
+- Commands List (~ NYI)
+  b - {stk} = term.getBackgroundColor()
+  B - term.setBackgroundColor(2^{stk})
+  t - {stk} = term.getTextColor()
+  T - term.setTextColor(2^{stk})
+  c - {stk},{stk+1} = term.getCursorPos()
+  C - term.setCursorPos({stk-1},{stk})
+  s - {stk},{stk+1} = term.getSize()
+  r - term.clearLine()
+  R - term.clear()
+  l - term.scroll({stk})
+  i - {stk} = term.isColor()
+ ~w - term.write({stk ...})
+- Colors List
+  0  - white
+  1  - orange
+  2  - magenta
+  3  - lightBlue
+  4  - yellow
+  5  - lime
+  6  - pink
+  7  - gray
+  8  - lightGray
+  9  - cyan
+  10 - purple
+  11 - blue
+  12 - brown
+  13 - green
+  14 - red
+  15 - black
+]]
