@@ -1,0 +1,320 @@
+#!@
+if shell then
+  print("Use os.loadAPI()")
+  return
+end
+
+local w,h = term.getSize()
+
+local function lpad(s,p,l)
+  return p:rep(l-#s)..s
+end
+
+local function sc(s,p)
+  if #s < p then
+    for i=#s,p do
+      s[#s+1] = 0
+    end
+  end
+end
+
+local function read(path)
+  local f = fs.open(path,"r")
+  if f then
+    local fl = {}
+    local l = f.readLine()
+    while l ~= nil do
+      fl[#fl+1] = l
+      l = f.readLine()
+    end
+    f.close()
+    return fl
+  end
+  return false
+end
+
+local function parse(fl)
+  local m = {}
+  for i=1,25 do
+    m[i] = {}
+    for j=1,80 do
+      m[i][j] = " "
+    end
+  end
+  
+  for i=1,math.min(#fl,25) do
+    for j=1,math.min(#fl[i],80) do
+      m[i][j] = fl[i]:sub(j,j)
+    end
+  end
+  
+  return m
+end
+
+function exec(path)
+  local fl = read(path)
+  if not fl then
+    error("Failed to read file",2)
+  end
+  local m = parse(fl)
+  local x,y,dx,dy,sm,s,r = 1,1,1,0,false,{},true
+  return function()
+    if not r then
+      return
+    end
+    if m[y][x] == "\"" then
+      sm = not sm
+    elseif sm then
+      s[#s+1] = m[y][x]:byte()
+    elseif m[y][x] == "@" then
+      r = false
+      return {x=x,y=y,dx=dx,dy=dy,sm=sm,s=s}
+    elseif m[y][x] == "~" then
+      local i = ""
+      local ocx,ocy = term.getCursorPos()
+      local cx,cy = ocx,ocy
+      if cx+3 > w then
+        cx,cy = 1,cy+1
+      end
+      if cy >= h then
+        term.scroll(1)
+        cx,cy = cx,cy-1
+      end
+      term.setCursorPos(cx,cy)
+      term.setCursorBlink(true)
+      while true do
+        local e,p = os.pullEventRaw()
+        if e == "char" then
+          i = p
+          term.write(i)
+          term.setCursorPos(cx,cy)
+        elseif e == "key" then
+          if p == keys.enter and #i > 0 then
+            break
+          elseif p == keys.backspace then
+            i = ""
+            term.write(" ")
+            term.setCursorPos(cx,cy)
+          end
+        end
+      end
+      term.setCursorBlink(false)
+      term.write(" ")
+      term.setCursorPos(ocx,ocy)
+      s[#s+1] = string.byte(i)
+    elseif m[y][x] == "&" then
+      local i = ""
+      local ocx,ocy = term.getCursorPos()
+      local cx,cy = ocx,ocy
+      if cx+3 > w then
+        cx,cy = 1,cy+1
+      end
+      if cy >= h then
+        term.scroll(1)
+        cx,cy = cx,cy-1
+      end
+      term.setCursorPos(cx,cy)
+      term.write("000")
+      term.setCursorPos(cx,cy)
+      while true do
+        local e,p = os.pullEventRaw()
+        if e == "char" and tonumber(p) and tonumber(i..p) < 256 then
+          i = tostring(tonumber(i..p))
+          term.write(lpad(i,"0",3))
+          term.setCursorPos(cx,cy)
+        elseif e == "key" then
+          if p == keys.enter then
+            break
+          elseif p == keys.backspace then
+            i = i:sub(1,#i-1)
+            term.write(lpad(i,"0",3))
+            term.setCursorPos(cx,cy)
+          end
+        end
+      end
+      term.write("   ")
+      term.setCursorPos(ocx,ocy)
+      s[#s+1] = tonumber(i)
+    elseif m[y][x] == "p" then
+      sc(s,3)
+      local y,x,v = s[#s],s[#s-1],s[#s-2]
+      s[#s],s[#s-1],s[#s-2] = nil
+      if m[y+1] and m[y+1][x+1] then
+        m[y+1][x+1] = v
+      end
+    elseif m[y][x] == "g" then
+      sc(s,2)
+      local y,x = s[#s],s[#s-1]
+      s[#s],s[#s-1] = nil
+      s[#s+1] = (m[y+1] and m[y+1][x+1] and m[y+1][x+1]:byte() or 0)
+    elseif m[y][x] == "#" then
+      x,y = x+dx,y+dy
+    elseif m[y][x] == "," then
+      sc(s,1)
+      local p = string.char(s[#s])
+      s[#s] = nil
+      local cx,cy = term.getCursorPos()
+      if cx+1 > w or p == "\n" then
+        cx,cy = 1,cy+1
+      end
+      if cy >= h then
+        term.scroll(1)
+        cx,cy = cx,cy-1
+      end
+      term.setCursorPos(cx,cy)
+      if p ~= "\n" then
+        term.write(p)
+      end
+    elseif m[y][x] == "." then
+      sc(s,1)
+      local p = tostring(s[#s])
+      s[#s] = nil
+      local cx,cy = term.getCursorPos()
+      if cx+#p > w then
+        cx,cy = 1,cy+1
+      end
+      if cy >= h then
+        term.scroll(1)
+        cx,cy = cx,cy-1
+      end
+      term.setCursorPos(cx,cy)
+      term.write(p)
+    elseif m[y][x] == "$" then
+      sc(s,1)
+      s[#s] = nil
+    elseif m[y][x] == "\\" then
+      sc(s,2)
+      s[#s],s[#s-1] = s[#s-1],s[#s]
+    elseif m[y][x] == ":" then
+      sc(s,1)
+      s[#s+1] = s[#s]
+    elseif m[y][x] == "|" then
+      sc(s,1)
+      local p = s[#s]
+      s[#s] = nil
+      if p == 0 then
+        dx,dy = 0,1
+      else
+        dx,dy = 0,-1
+      end
+    elseif m[y][x] == "_" then
+      sc(s,1)
+      local p = s[#s]
+      s[#s] = nil
+      if p == 0 then
+        dx,dy = 1,0
+      else
+        dx,dy = -1,0
+      end
+    elseif m[y][x] == "?" then
+      dy = 0
+      if math.random(0,1) > 0 then
+        dx = 1
+      else
+        dx = -1
+      end
+      if math.random(0,1) > 0 then
+        dx,dy = dy,dx
+      end
+    elseif m[y][x] == "v" then
+      dx,dy = 0,1
+    elseif m[y][x] == "^" then
+      dx,dy = 0,-1
+    elseif m[y][x] == "<" then
+      dx,dy = -1,0
+    elseif m[y][x] == ">" then
+      dx,dy = 1,0
+    elseif m[y][x] == "`" then
+      sc(s,2)
+      local a,b = s[#s],s[#s-1]
+      s[#s],s[#s-1] = nil
+      if b>a then
+        s[#s+1] = 1
+      else
+        s[#s+1] = 0
+      end
+    elseif m[y][x] == "!" then
+      sc(s,1)
+      local p = s[#s]
+      s[#s] = nil
+      if p == 0 then
+        s[#s+1] = 1
+      else
+        s[#s+1] = 0
+      end
+    elseif m[y][x] == "%" then
+      sc(s,2)
+      local a,b = s[#s],s[#s-1]
+      s[#s],s[#s-1] = nil
+      s[#s+1] = a%b
+    elseif m[y][x] == "/" then
+      sc(s,2)
+      local a,b = s[#s],s[#s-1]
+      s[#s],s[#s-1] = nil
+      if a ~= 0 then
+        s[#s+1] = math.floor(b/a)
+      else
+        local i = ""
+        local ocx,ocy = term.getCursorPos()
+        local cx,cy = ocx,ocy
+        if cx+3 > w then
+          cx,cy = 1,cy+1
+        end
+        if cy >= h then
+          term.scroll(1)
+          cx,cy = cx,cy-1
+        end
+        term.setCursorPos(cx,cy)
+        term.write("000")
+        term.setCursorPos(cx,cy)
+        while true do
+          local e,p = os.pullEventRaw()
+          if e == "char" and tonumber(p) and tonumber(i..p) < 256 then
+            i = tostring(tonumber(i..p))
+            term.write(lpad(i,"0",3))
+            term.setCursorPos(cx,cy)
+          elseif e == "key" then
+            if p == keys.enter then
+              break
+            elseif p == keys.backspace then
+              i = i:sub(1,#i-1)
+              term.write(lpad(i,"0",3))
+              term.setCursorPos(cx,cy)
+            end
+          end
+        end
+        term.write("   ")
+        term.setCursorPos(ocx,ocy)
+        s[#s+1] = tonumber(i)
+      end
+    elseif m[y][x] == "*" then
+      sc(s,2)
+      local a,b = s[#s],s[#s-1]
+      s[#s],s[#s-1] = nil
+      s[#s+1] = (a*b)%(2^32)
+    elseif m[y][x] == "-" then
+      sc(s,2)
+      local a,b = s[#s],s[#s-1]
+      s[#s],s[#s-1] = nil
+      s[#s+1] = (b-a)%(2^32)
+    elseif m[y][x] == "+" then
+      sc(s,2)
+      local a,b = s[#s], s[#s-1]
+      s[#s],s[#s-1] = nil,nil
+      s[#s+1] = (a+b)%(2^32)
+    elseif tonumber(m[y][x]) then
+      s[#s+1] = tonumber(m[y][x])
+    end
+    x,y = x+dx,y+dy
+    if x > 80 then
+      x = x - 80
+    elseif x < 1 then
+      x = x + 80
+    elseif y > 25 then
+      y = y - 25
+    elseif y < 1 then
+      y = y + 25
+    end
+    return {x=x,y=y,dx=dx,dy=dy,sm=sm,s=s}
+  end
+end
