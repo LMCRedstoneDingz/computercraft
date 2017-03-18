@@ -1,0 +1,13 @@
+#!@
+local tArgs = {...}
+if #tArgs < 1 then
+  print("Usage: bef <path>")
+  return
+end
+
+os.loadAPI(shell.resolve("bef93"))
+
+local f = bef93.exec(shell.resolve(tArgs[1]))
+
+repeat
+until not f()
